@@ -7,6 +7,7 @@ ai비서로 유용함을 더한 스마트 조명입니다.
 <img src="https://file.miricanvas.com/user_image/2026/03/15/01/50/32htvrCRauOKsm7bsFOFg/image.png?size=400">
 
 
+## 기능
 
 ### 1. 밸런싱 기능
 - 사각형의 꼭짓점으로 균형을 잡아 서 있을 수 있음
