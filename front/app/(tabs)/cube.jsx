@@ -7,6 +7,7 @@ export default function TabTwoScreen() {
   const [fontsLoaded] = useFonts({
     'MyCustomFont': require('../../assets/fonts/MonaS12TextKR.ttf'),
     'MyCustomFont-Bold': require('../../assets/fonts/MonaS12-Bold.ttf'),
+    'MyCustomFont-Color': require('../../assets/fonts/Mona12Emoji.ttf'),
   });
 
   if (!fontsLoaded) {
@@ -22,7 +23,7 @@ export default function TabTwoScreen() {
 
   return (
     <View style={styles.container}>
-           <Text style={styles.test}>하하 이제 자야지...세부적으로 만드는건 내일할래</Text>
+           <Text style={styles.test}>🎙️🎤</Text>
     </View>
   );
 }
@@ -37,7 +38,7 @@ const styles = StyleSheet.create({
   },
 
   test: {
-    fontFamily: 'MyCustomFont',
+    fontFamily: 'MyCustomFont-Color',
   }
  
 

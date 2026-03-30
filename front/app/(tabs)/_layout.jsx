@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Text, StyleSheet, Platform, View } from 'react-native';
+import { Text, StyleSheet, Platform, View, Image } from 'react-native';
 import { useFonts } from 'expo-font';
 
 export default function TabLayout() {
@@ -15,10 +15,15 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: false,
-        // 1. 탭 바 전체의 위치와 너비 설정
         tabBarStyle: styles.tabBar,
-        // 2. 개별 아이템(버튼)이 차지하는 영역 설정 (수직 중앙 정렬의 핵심)
         tabBarItemStyle: styles.tabItem,
+        tabBarBackground: () => (
+          <Image 
+            source={require('../../assets/images/tab.png')} 
+            style={{width: '100%', height: '100%'}}
+            resizeMode="stretch" 
+          />
+        ),
       }}>
       <Tabs.Screen
         name="home"
@@ -48,29 +53,25 @@ const styles = StyleSheet.create({
     bottom: 30,
     marginRight: '7%',
     marginLeft: '7%',
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#f3ebf2',
+    height: 80,   //64
+    // borderRadius: 32,
+    // backgroundColor: '#f3ebf2',
     borderTopWidth: 0,
-
-    flexDirection: 'row', 
-    paddingBottom: 0, 
     
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowColor: '#ffffff00',
+
+    overflow: 'hidden',
   },
 
   tabItem: {
-    padding: 10,        
+    padding: 18, //10    
   },
 
   emoji: {
-    fontSize: 28,
+    fontSize: 28,  //28
     fontFamily: 'MyCustomFont-Color',
     includeFontPadding: false,
     // textAlign: 'center',
   },
+
 });
