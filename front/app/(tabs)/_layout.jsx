@@ -1,42 +1,76 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Text, StyleSheet, Platform, View } from 'react-native';
+import { useFonts } from 'expo-font';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const [fontsLoaded] = useFonts({
+    'MyCustomFont-Color': require('../../assets/fonts/Mona12Emoji.ttf'),
+  });
+
+  if (!fontsLoaded) return null;
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
-        tabBarButton: HapticTab,
+        tabBarShowLabel: false,
+        // 1. 탭 바 전체의 위치와 너비 설정
+        tabBarStyle: styles.tabBar,
+        // 2. 개별 아이템(버튼)이 차지하는 영역 설정 (수직 중앙 정렬의 핵심)
+        tabBarItemStyle: styles.tabItem,
       }}>
       <Tabs.Screen
-        name="index"
+        name="home"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          tabBarIcon: () => <Text style={styles.emoji}>🏠</Text>,
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="cube"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          tabBarIcon: () => <Text style={styles.emoji}>🎲</Text>,
         }}
       />
       <Tabs.Screen
         name="ai"
         options={{
-          title: 'Ai',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          tabBarIcon: () => <Text style={styles.emoji}>✨</Text>,
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBar: {
+    position: 'absolute',
+    bottom: 30,
+    marginRight: '7%',
+    marginLeft: '7%',
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#f3ebf2',
+    borderTopWidth: 0,
+
+    flexDirection: 'row', 
+    paddingBottom: 0, 
+    
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+
+  tabItem: {
+    padding: 10,        
+  },
+
+  emoji: {
+    fontSize: 28,
+    fontFamily: 'MyCustomFont-Color',
+    includeFontPadding: false,
+    // textAlign: 'center',
+  },
+});
