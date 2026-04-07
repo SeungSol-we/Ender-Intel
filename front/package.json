@@ -25,7 +25,6 @@
     "expo-image": "~3.0.11",
     "expo-linking": "~8.0.11",
     "expo-router": "~6.0.23",
-    "expo-speech-recognition": "^3.1.2",
     "expo-splash-screen": "~31.0.13",
     "expo-status-bar": "~3.0.9",
     "expo-symbols": "~1.0.8",
@@ -45,6 +44,7 @@
     "@types/react": "~19.1.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
+    "jetifier": "^2.0.0",
     "typescript": "~5.9.2"
   },
   "private": true
