@@ -74,13 +74,7 @@ const AiScreen = () => {
                 source={require('../../assets/images/background.png')}
             />
             
-            {/* 결과 창을 처음부터 보여주기 위해 조건부 렌더링 제거 */}
-            <View style={styles.resultContainer}>
-                <Text style={styles.resultLabel}>실시간 인식 결과</Text>
-                <Text style={styles.resultText}>
-                    {recognizedText || '버튼을 눌러 대화를 시작하세요.'}
-                </Text>
-            </View>
+            
 
             <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
                 <Pressable 
@@ -100,6 +94,13 @@ const AiScreen = () => {
                     </Text>
                 </Pressable>
             </Animated.View>
+            {/* 결과 창을 처음부터 보여주기 위해 조건부 렌더링 제거 */}
+            <View style={styles.resultContainer}>
+                <Text style={styles.resultLabel}>실시간 인식 결과</Text>
+                <Text style={styles.resultText}>
+                    {recognizedText || '버튼을 눌러 말하기!'}
+                </Text>
+            </View>
         </View>
     );
 };
