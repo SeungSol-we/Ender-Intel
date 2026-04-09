@@ -5,12 +5,11 @@ import Voice from '@react-native-voice/voice';
 const AiScreen = () => {
     const [isListening, setIsListening] = useState(false);
     const [recognizedText, setRecognizedText] = useState('');
+    const [isButtonDisabled, setIsButtonDisabled] = useState(false); // [추가] 버튼 잠금 상태
     const scaleAnim = useRef(new Animated.Value(1)).current;
-    
     const silenceTimer = useRef(null);
 
     useEffect(() => {
-        // 음성 인식 이벤트 등록
         Voice.onSpeechStart = () => {
             setIsListening(true);
             startPulseAnimation();
@@ -19,20 +18,14 @@ const AiScreen = () => {
         Voice.onSpeechResults = (e) => {
             if (e.value && e.value[0]) {
                 setRecognizedText(e.value[0]);
-                resetSilenceTimer(); // 말하면 타이머 연장
-                console.log("텍스트 인식: ", e.value[0])
+                resetSilenceTimer();
+                console.log(e.value[0])
             }
         };
 
         Voice.onSpeechError = (e) => {
-            // Error 5번이 뜨면 이미 실행 중인 것이니 일단 멈춤 처리
             console.log('Speech Error:', e.error);
-            if (e.error?.code === '5') {
-                // 이미 실행 중일 때 발생하는 에러이므로 강제로 상태를 맞춤
-                stopEverything(); 
-            } else {
-                handleStopUI();
-            }
+            stopEverything(); 
         };
 
         return () => {
@@ -41,20 +34,15 @@ const AiScreen = () => {
         };
     }, []);
 
-    // UI와 타이머만 끄는 함수
-    const handleStopUI = () => {
-        setIsListening(false);
-        stopPulseAnimation();
-        if (silenceTimer.current) clearTimeout(silenceTimer.current);
-    };
-
-    // [중요] 엔진 정지 + 텍스트 초기화 + UI 정지 통합 함수
     const stopEverything = async () => {
         try {
-            handleStopUI();
-            setRecognizedText(''); // 텍스트 초기화 -> '버튼을 눌러 말하기!'
-            await Voice.stop(); 
-            await Voice.destroy(); // 엔진을 완전히 파괴해서 Error 5 방지
+            setIsListening(false);
+            stopPulseAnimation();
+            setRecognizedText('');
+            if (silenceTimer.current) clearTimeout(silenceTimer.current);
+            
+            await Voice.stop();
+            await Voice.destroy();
         } catch (e) {
             console.error('Stop Error:', e);
         }
@@ -63,7 +51,7 @@ const AiScreen = () => {
     const resetSilenceTimer = () => {
         if (silenceTimer.current) clearTimeout(silenceTimer.current);
         silenceTimer.current = setTimeout(() => {
-            stopEverything(); // 5초간 말 없으면 자동 종료
+            stopEverything();
         }, 5000);
     };
 
@@ -81,14 +69,19 @@ const AiScreen = () => {
         scaleAnim.setValue(1);
     };
 
+    // [수정] 버튼 클릭 핸들러
     const handleButtonPress = async () => {
+        if (isButtonDisabled) return; // 버튼이 잠겨있으면 아무것도 안 함
+
+        // 1. 버튼 잠금 (0.5초 동안)
+        setIsButtonDisabled(true);
+        setTimeout(() => setIsButtonDisabled(false), 500);
+
         if (isListening) {
-            // [요구사항] 텍스트가 있든 없든 누르면 즉시 멈춤 + 초기화
             await stopEverything();
         } else {
-            // 시작 전 초기화
             try {
-                await Voice.destroy(); // 이전 찌꺼기 제거 (Error 5 방지 핵심)
+                await Voice.destroy();
                 setRecognizedText('듣고 있어요...');
                 await Voice.start('ko-KR');
                 resetSilenceTimer();
@@ -108,9 +101,10 @@ const AiScreen = () => {
             <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
                 <Pressable 
                     onPress={handleButtonPress}
+                    // [추가] 잠금 상태일 때 시각적으로도 피드백을 줄 수 있음 (선택 사항)
                     style={({ pressed }) => [
                         styles.button,
-                        { opacity: pressed ? 0.7 : 1 },
+                        { opacity: (pressed || isButtonDisabled) ? 0.7 : 1 },
                         isListening && styles.buttonActive
                     ]}
                 >
@@ -127,7 +121,7 @@ const AiScreen = () => {
             <View style={styles.resultContainer}>
                 <Text style={styles.resultLabel}>실시간 인식 결과</Text>
                 <Text style={styles.resultText}>
-                    {recognizedText || '버튼을 눌러 말하기!'}
+                    {recognizedText || '버튼을 눌러말하기!'}
                 </Text>
             </View>
         </View>
