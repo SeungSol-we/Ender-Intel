@@ -1,30 +1,71 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Pressable, Text, View, Image, Animated, StyleSheet } from 'react-native';
-import Voice from '@react-native-voice/voice'; // 실시간 음성 인식 라이브러리
+import Voice from '@react-native-voice/voice';
 
 const AiScreen = () => {
     const [isListening, setIsListening] = useState(false);
-    const [recognizedText, setRecognizedText] = useState(''); // 실시간 텍스트 저장
+    const [recognizedText, setRecognizedText] = useState('');
     const scaleAnim = useRef(new Animated.Value(1)).current;
+    
+    const silenceTimer = useRef(null);
 
     useEffect(() => {
-        // Voice 콜백 설정
-        Voice.onSpeechStart = () => setIsListening(true);
-        Voice.onSpeechEnd = () => setIsListening(false);
-        Voice.onSpeechResults = (e) => {
-            // 결과가 나오면 실시간으로 텍스트 업데이트
-            if (e.value) setRecognizedText(e.value[0]);
+        // 음성 인식 이벤트 등록
+        Voice.onSpeechStart = () => {
+            setIsListening(true);
+            startPulseAnimation();
         };
+
+        Voice.onSpeechResults = (e) => {
+            if (e.value && e.value[0]) {
+                setRecognizedText(e.value[0]);
+                resetSilenceTimer(); // 말하면 타이머 연장
+                console.log("텍스트 인식: ", e.value[0])
+            }
+        };
+
         Voice.onSpeechError = (e) => {
+            // Error 5번이 뜨면 이미 실행 중인 것이니 일단 멈춤 처리
             console.log('Speech Error:', e.error);
-            setIsListening(false);
+            if (e.error?.code === '5') {
+                // 이미 실행 중일 때 발생하는 에러이므로 강제로 상태를 맞춤
+                stopEverything(); 
+            } else {
+                handleStopUI();
+            }
         };
 
         return () => {
-            // 컴포넌트 언마운트 시 초기화
             Voice.destroy().then(Voice.removeAllListeners);
+            if (silenceTimer.current) clearTimeout(silenceTimer.current);
         };
     }, []);
+
+    // UI와 타이머만 끄는 함수
+    const handleStopUI = () => {
+        setIsListening(false);
+        stopPulseAnimation();
+        if (silenceTimer.current) clearTimeout(silenceTimer.current);
+    };
+
+    // [중요] 엔진 정지 + 텍스트 초기화 + UI 정지 통합 함수
+    const stopEverything = async () => {
+        try {
+            handleStopUI();
+            setRecognizedText(''); // 텍스트 초기화 -> '버튼을 눌러 말하기!'
+            await Voice.stop(); 
+            await Voice.destroy(); // 엔진을 완전히 파괴해서 Error 5 방지
+        } catch (e) {
+            console.error('Stop Error:', e);
+        }
+    };
+
+    const resetSilenceTimer = () => {
+        if (silenceTimer.current) clearTimeout(silenceTimer.current);
+        silenceTimer.current = setTimeout(() => {
+            stopEverything(); // 5초간 말 없으면 자동 종료
+        }, 5000);
+    };
 
     const startPulseAnimation = () => {
         Animated.loop(
@@ -36,34 +77,24 @@ const AiScreen = () => {
     };
 
     const stopPulseAnimation = () => {
+        scaleAnim.stopAnimation();
         scaleAnim.setValue(1);
     };
 
-    const startListening = async () => {
-        try {
-            setRecognizedText('듣고 있어요...'); // 초기 문구
-            await Voice.start('ko-KR'); // 한국어 인식 시작
-            startPulseAnimation();
-        } catch (e) {
-            console.error(e);
-        }
-    };
-
-    const stopListening = async () => {
-        try {
-            await Voice.stop();
-            stopPulseAnimation();
-            setIsListening(false);
-        } catch (e) {
-            console.error(e);
-        }
-    };
-
-    const handleButtonPress = () => {
+    const handleButtonPress = async () => {
         if (isListening) {
-            stopListening();
+            // [요구사항] 텍스트가 있든 없든 누르면 즉시 멈춤 + 초기화
+            await stopEverything();
         } else {
-            startListening();
+            // 시작 전 초기화
+            try {
+                await Voice.destroy(); // 이전 찌꺼기 제거 (Error 5 방지 핵심)
+                setRecognizedText('듣고 있어요...');
+                await Voice.start('ko-KR');
+                resetSilenceTimer();
+            } catch (e) {
+                console.error('Start Error:', e);
+            }
         }
     };
 
@@ -73,8 +104,6 @@ const AiScreen = () => {
                 style={styles.background} 
                 source={require('../../assets/images/background.png')}
             />
-            
-            
 
             <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
                 <Pressable 
@@ -94,7 +123,7 @@ const AiScreen = () => {
                     </Text>
                 </Pressable>
             </Animated.View>
-            {/* 결과 창을 처음부터 보여주기 위해 조건부 렌더링 제거 */}
+
             <View style={styles.resultContainer}>
                 <Text style={styles.resultLabel}>실시간 인식 결과</Text>
                 <Text style={styles.resultText}>
