@@ -3,25 +3,24 @@
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
-import os
 
-from routers import chat, manual
+from routers import chat
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 서버 시작 시 오디오 응답 저장 디렉토리 생성
-    os.makedirs("static/audio", exist_ok=True)
-    print("✅ 밸런싱 큐브 서버 시작")
+    # 서버 시작
+    print("✅ 밸런싱 큐브 AI 비서 서버 시작")
     yield
-    print("🛑 밸런싱 큐브 서버 종료")
+    # 서버 종료
+    print("🛑 밸런싱 큐브 AI 비서 서버 종료")
 
 
 app = FastAPI(
     title="밸런싱 큐브 AI 비서",
     version="1.0.0",
+    description="텍스트 기반 음성 인식 결과 처리",
     lifespan=lifespan,
 )
 
@@ -34,17 +33,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# TTS 오디오 파일 정적 서빙
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
 # 라우터 등록
 app.include_router(chat.router, prefix="/api/chat", tags=["AI 비서"])
-app.include_router(manual.router, prefix="/api/manual", tags=["수동 제어"])
 
 
 @app.get("/")
 async def root():
-    return {"status": "ok", "message": "밸런싱 큐브 AI 비서 서버 작동 중"}
+    return {
+        "status": "ok",
+        "message": "밸런싱 큐브 AI 비서 서버 작동 중",
+        "endpoints": {
+            "chat_text": "POST /api/chat/text",
+            "health_check": "GET /health"
+        }
+    }
 
 
 @app.get("/health")
