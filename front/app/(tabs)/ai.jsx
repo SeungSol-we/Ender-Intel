@@ -5,7 +5,7 @@ import Voice from '@react-native-voice/voice';
 const AiScreen = () => {
     const [isListening, setIsListening] = useState(false);
     const [recognizedText, setRecognizedText] = useState('');
-    const [isButtonDisabled, setIsButtonDisabled] = useState(false); // [추가] 버튼 잠금 상태
+    const [isButtonDisabled, setIsButtonDisabled] = useState(false);
     const scaleAnim = useRef(new Animated.Value(1)).current;
     const silenceTimer = useRef(null);
 
@@ -19,7 +19,6 @@ const AiScreen = () => {
             if (e.value && e.value[0]) {
                 setRecognizedText(e.value[0]);
                 resetSilenceTimer();
-                console.log(e.value[0])
             }
         };
 
@@ -38,7 +37,10 @@ const AiScreen = () => {
         try {
             setIsListening(false);
             stopPulseAnimation();
-            setRecognizedText('');
+            
+            // [수정] setRecognizedText('')를 제거했습니다. 
+            // 이제 녹음이 끝나도 마지막에 인식된 텍스트가 유지됩니다.
+            
             if (silenceTimer.current) clearTimeout(silenceTimer.current);
             
             await Voice.stop();
@@ -69,11 +71,9 @@ const AiScreen = () => {
         scaleAnim.setValue(1);
     };
 
-    // [수정] 버튼 클릭 핸들러
     const handleButtonPress = async () => {
-        if (isButtonDisabled) return; // 버튼이 잠겨있으면 아무것도 안 함
+        if (isButtonDisabled) return;
 
-        // 1. 버튼 잠금 (0.5초 동안)
         setIsButtonDisabled(true);
         setTimeout(() => setIsButtonDisabled(false), 500);
 
@@ -82,7 +82,8 @@ const AiScreen = () => {
         } else {
             try {
                 await Voice.destroy();
-                setRecognizedText('듣고 있어요...');
+                // [수정] 새로운 녹음을 시작할 때만 텍스트를 초기화합니다.
+                setRecognizedText('듣고 있어요...'); 
                 await Voice.start('ko-KR');
                 resetSilenceTimer();
             } catch (e) {
@@ -101,7 +102,6 @@ const AiScreen = () => {
             <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
                 <Pressable 
                     onPress={handleButtonPress}
-                    // [추가] 잠금 상태일 때 시각적으로도 피드백을 줄 수 있음 (선택 사항)
                     style={({ pressed }) => [
                         styles.button,
                         { opacity: (pressed || isButtonDisabled) ? 0.7 : 1 },
@@ -121,7 +121,9 @@ const AiScreen = () => {
             <View style={styles.resultContainer}>
                 <Text style={styles.resultLabel}>실시간 인식 결과</Text>
                 <Text style={styles.resultText}>
-                    {recognizedText || '버튼을 눌러말하기!'}
+                    {/* 앱을 처음 켰을 때만 '버튼을 눌러 말하기!'가 나오고, 
+                        한 번이라도 녹음하면 그 결과가 유지됩니다. */}
+                    {recognizedText || '버튼을 눌러 말하기!'}
                 </Text>
             </View>
         </View>
@@ -178,7 +180,7 @@ const styles = StyleSheet.create({
     },
     resultLabel: {
         fontSize: 12,
-        color: '#ff6b6b',
+        color: '#c16b6b',
         marginBottom: 10,
         fontWeight: 'bold',
     },
