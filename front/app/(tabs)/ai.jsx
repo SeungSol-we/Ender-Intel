@@ -2,13 +2,11 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Pressable, Text, View, Image, Animated, StyleSheet, Platform } from 'react-native';
 import Voice from '@react-native-voice/voice';
 import { useFonts } from 'expo-font';
-// 신규 권한 라이브러리 (expo-permissions 대체)
 import * as Device from 'expo-device';
+// ✨ TTS 라이브러리 추가
+import * as Speech from 'expo-speech';
 
-// ──────────────────────────────────────────────
-// 백엔드 설정 (사용자님의 IP 유지)
-// ──────────────────────────────────────────────
-const BACKEND_URL = 'http://10.98.231.122:8000';
+const BACKEND_URL = 'http://10.202.3.122:8000';
 
 const AiScreen = () => {
     const [isListening, setIsListening] = useState(false);
@@ -21,7 +19,20 @@ const AiScreen = () => {
     const voiceInitialized = useRef(false);
     const latestText = useRef('');
 
-    // 권한 요청 로직 수정 (PermissionsAndroid 유지 + 안전장치)
+    // ✨ TTS 재생 함수
+    const speakResponse = (text) => {
+        if (!text) return;
+        
+        // 재생 중인 음성이 있다면 중지 후 새로 시작
+        Speech.stop(); 
+        
+        Speech.speak(text, {
+            language: 'ko-KR', // 한국어 설정
+            pitch: 1.0,        // 음높이
+            rate: 1.0,         // 속도
+        });
+    };
+
     useEffect(() => {
         const requestPermission = async () => {
             if (Platform.OS === 'android') {
@@ -49,18 +60,15 @@ const AiScreen = () => {
     useEffect(() => {
         const initializeVoice = async () => {
             try {
-                // 기존 세션이 남아있을 경우 대비
                 await Voice.destroy();
-                
                 Voice.onSpeechStart = handleSpeechStart;
                 Voice.onSpeechResults = handleSpeechResults;
                 Voice.onSpeechError = handleSpeechError;
                 Voice.onSpeechEnd = handleSpeechEnd;
-
                 voiceInitialized.current = true;
-                console.log('✅ Voice 초기화 완료');
+                console.log('Voice 초기화 완료');
             } catch (e) {
-                console.error('❌ Voice 초기화 오류:', e);
+                console.error('Voice 초기화 오류:', e);
             }
         };
 
@@ -73,79 +81,62 @@ const AiScreen = () => {
                 clearTimeout(silenceTimer.current);
             }
             Voice.destroy().then(Voice.removeAllListeners);
+            // ✨ 앱 종료 시 음성 재생도 중지
+            Speech.stop();
         };
     }, []);
 
     const handleSpeechStart = () => {
-        console.log('🎤 음성 인식 시작');
+        console.log('음성 인식 시작');
         setIsListening(true);
         startPulseAnimation();
+        // ✨ 사용자가 말을 시작하면 AI의 이전 음성 재생 중단
+        Speech.stop();
     };
 
     const handleSpeechResults = (e) => {
-        if (e.value && e.value.length > 0) { // e.value[0] 체크 강화
+        if (e.value && e.value.length > 0) {
             const text = e.value[0];
-            console.log('📝 인식된 텍스트:', text);
-            
-            // 화면 업데이트
+            console.log('인식된 텍스트:', text);
             setRecognizedText(text);
-            // ✨ 즉시 전송용 Ref 업데이트 (가장 중요)
             latestText.current = text; 
-            
             resetSilenceTimer();
         }
     };
 
     const handleSpeechError = async (e) => { 
         if (!isListening) return;
-
         console.log('❌ 음성 인식 오류:', e);
         setIsListening(false);
         setIsButtonDisabled(false);
         stopPulseAnimation();
-
-        try {
-            await Voice.destroy(); 
-        } catch (err) {}
-        
-        if (e.error?.code === '5' || e.code === '5') {
-            if (!recognizedText || recognizedText === '듣고 있어요...') {
-                setRecognizedText('인식 엔진 연결 상태가 불안정합니다.');
-            }
-        }
+        try { await Voice.destroy(); } catch (err) {}
     };
 
     const handleSpeechEnd = () => {
-        console.log('🛑 음성 인식 종료');
+        console.log('음성 인식 종료');
         setIsListening(false);
         stopPulseAnimation();
     };
 
     const stopEverything = async () => {
-        // [수정] 이미 Listening이 false여도 전송 로직은 실행될 수 있도록 가드 제거
-        console.log('🏁 stopEverything 실행됨 (현재 텍스트:', latestText.current, ')');
-
+        console.log('stopEverything 실행됨 (현재 텍스트:', latestText.current, ')');
         try {
             if (silenceTimer.current) {
                 clearTimeout(silenceTimer.current);
                 silenceTimer.current = null;
             }
-
-            // 음성 인식 중지
             await Voice.stop();
             setIsListening(false);
             stopPulseAnimation();
 
-            // [핵심] 전송 로직
             const textToSend = latestText.current;
-            
-            // 조건문에서 '듣고 있어요...' 제외 로직을 더 안전하게 변경
             if (textToSend && textToSend.trim().length > 0 && textToSend !== '듣고 있어요...') {
-                console.log('🚀 백엔드로 자동 전송 시작:', textToSend);
+                console.log('백엔드로 자동 전송 시작:', textToSend);
                 await sendTextToBackend(textToSend);
-                latestText.current = ''; // 전송 후 초기화
+                latestText.current = ''; 
             } else {
-                console.log('⚠️ 전송할 유효한 텍스트가 없습니다. (값:', textToSend, ')');
+                console.log('전송할 유효한 텍스트가 없습니다.');
             }
         } catch (e) {
             console.error('Stop Error:', e);
@@ -155,7 +146,7 @@ const AiScreen = () => {
     const resetSilenceTimer = () => {
         if (silenceTimer.current) clearTimeout(silenceTimer.current);
         silenceTimer.current = setTimeout(() => {
-            console.log('⏱️ 5초 침묵 - 자동 정지');
+            console.log('5초 침묵 - 자동 정지');
             stopEverything();
         }, 5000);
     };
@@ -163,16 +154,8 @@ const AiScreen = () => {
     const startPulseAnimation = () => {
         Animated.loop(
             Animated.sequence([
-                Animated.timing(scaleAnim, {
-                    toValue: 1.1,
-                    duration: 500,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(scaleAnim, {
-                    toValue: 1,
-                    duration: 500,
-                    useNativeDriver: true,
-                }),
+                Animated.timing(scaleAnim, { toValue: 1.1, duration: 500, useNativeDriver: true }),
+                Animated.timing(scaleAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
             ])
         ).start();
     };
@@ -184,12 +167,11 @@ const AiScreen = () => {
 
     const sendTextToBackend = async (text) => {
         if (!text.trim()) return;
-
         setIsProcessing(true);
         setResponse('처리 중...');
 
         try {
-            console.log('📤 백엔드로 텍스트 전송:', text);
+            console.log('백엔드로 텍스트 전송:', text);
             const res = await fetch(`${BACKEND_URL}/api/chat/text`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -198,9 +180,14 @@ const AiScreen = () => {
 
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
-            setResponse(data.text_reply || '응답을 받지 못했습니다.');
+            const aiReply = data.text_reply || '응답을 받지 못했습니다.';
+            
+            setResponse(aiReply);
+            // ✨ 백엔드 응답이 오면 자동으로 읽어주기
+            speakResponse(aiReply);
+
         } catch (error) {
-            console.error('❌ 백엔드 통신 오류:', error);
+            console.error('백엔드 통신 오류:', error);
             setResponse('오류: ' + error.message);
         } finally {
             setIsProcessing(false);
@@ -209,23 +196,19 @@ const AiScreen = () => {
 
     const handleButtonPress = async () => {
         if (isButtonDisabled || isProcessing) return;
-
         setIsButtonDisabled(true);
-        // 버튼 연타 방지 시간을 조금 더 늘림 (1초)
         setTimeout(() => setIsButtonDisabled(false), 1000);
 
         if (isListening) {
-            console.log('🔘 버튼 클릭: 인식 수동 중단');
             await stopEverything(); 
         } else {
             try {
-                console.log('🔘 버튼 클릭: 인식 시작');
+                // ✨ 새로운 인식을 시작할 때 기존 TTS 소리 끄기
+                Speech.stop();
                 latestText.current = ''; 
                 setRecognizedText('듣고 있어요...');
                 setResponse('');
                 await Voice.start('ko-KR');
-                // resetSilenceTimer는 onSpeechStart에서 실행되게 하는 것이 더 정확하지만 
-                // 일단 유지한다면 여기서 호출
                 resetSilenceTimer();
             } catch (e) {
                 console.error('❌ Start Error:', e);
@@ -239,6 +222,7 @@ const AiScreen = () => {
         'MyCustomFont-Bold': require('../../assets/fonts/MonaS12-Bold.ttf'),
     });
 
+    // 기존 UI 코드 (그대로 유지)
     return (
         <View style={styles.container}>
             <Image

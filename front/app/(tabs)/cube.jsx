@@ -15,7 +15,7 @@ export default function TabTwoScreen() {
       <View style={styles.container}>
         <Image 
             style={styles.background} 
-            source={require('../../assets/images/background.png')}
+            source={require('../../assets/images/ender_back2.jpg')}
         />
         <Text>
           로딩중...
@@ -29,9 +29,17 @@ export default function TabTwoScreen() {
     <View style={styles.container}>
       <Image 
           style={styles.background} 
-          source={require('../../assets/images/background.png')}
+          source={require('../../assets/images/ender_back2.jpg')}
       />
-      <Text style={styles.test}>🎙️🎤</Text>
+      <View>
+        <Text>연결 관리</Text>
+        <Text>RPi</Text>
+        <Text>ESP32</Text>
+      </View>
+
+      <View> 
+        <Text>컬러 피커 (라이브러리 사용예정)</Text>
+      </View>
     </View>
   );
 }
