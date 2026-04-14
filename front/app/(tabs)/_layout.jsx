@@ -28,19 +28,32 @@ export default function TabLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          tabBarIcon: () => <Text style={styles.emoji}>🏠</Text>,
+          // ✨ focused 인자를 받아 스타일을 동적으로 적용합니다.
+          tabBarIcon: ({ focused }) => (
+            <Text style={[styles.emoji, focused ? styles.emojiFocused : styles.emojiUnfocused]}>
+              🏠
+            </Text>
+          ),
         }}
       />
       <Tabs.Screen
         name="cube"
         options={{
-          tabBarIcon: () => <Text style={styles.emoji}>🎲</Text>,
+          tabBarIcon: ({ focused }) => (
+            <Text style={[styles.emoji, focused ? styles.emojiFocused : styles.emojiUnfocused]}>
+              🎲
+            </Text>
+          ),
         }}
       />
       <Tabs.Screen
         name="ai"
         options={{
-          tabBarIcon: () => <Text style={styles.emoji}>✨</Text>,
+          tabBarIcon: ({ focused }) => (
+            <Text style={[styles.emoji, focused ? styles.emojiFocused : styles.emojiUnfocused]}>
+              ✨
+            </Text>
+          ),
         }}
       />
     </Tabs>
@@ -51,27 +64,29 @@ const styles = StyleSheet.create({
   tabBar: {
     position: 'absolute',
     bottom: 30,
-    marginRight: '7%',
-    marginLeft: '7%',
-    height: 80,   //64
-    // borderRadius: 32,
-    // backgroundColor: '#f3ebf2',
+    marginHorizontal: '7%', // marginRight/Left 대신 사용 가능
+    height: 80,
     borderTopWidth: 0,
-    
     shadowColor: '#ffffff00',
-
     overflow: 'hidden',
   },
 
   tabItem: {
-    padding: 18, //10    
+    padding: 18,
   },
 
   emoji: {
-    fontSize: 28,  //28
+    fontSize: 28,
     fontFamily: 'MyCustomFont-Color',
     includeFontPadding: false,
-    // textAlign: 'center',
+    color: '#000000',
   },
 
+  emojiFocused: {
+    opacity: 1,
+  },
+
+  emojiUnfocused: {
+    opacity: 0.4, 
+  },
 });

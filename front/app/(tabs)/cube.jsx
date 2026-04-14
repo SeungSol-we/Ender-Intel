@@ -31,13 +31,13 @@ export default function TabTwoScreen() {
           style={styles.background} 
           source={require('../../assets/images/ender_back2.jpg')}
       />
-      <View>
+      <View style={styles.resultContainer}>
         <Text>연결 관리</Text>
         <Text>RPi</Text>
         <Text>ESP32</Text>
       </View>
 
-      <View> 
+      <View style={styles.resultContainer}> 
         <Text>컬러 피커 (라이브러리 사용예정)</Text>
       </View>
     </View>
@@ -59,9 +59,16 @@ const styles = StyleSheet.create({
       position: 'absolute'
   },
 
-  test: {
-    fontFamily: 'MyCustomFont-Color',
-  }
+  resultContainer: {
+        width: '85%',
+        minHeight: 150,
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        borderRadius: 20,
+        padding: 20,
+        marginBottom: 40,
+        borderWidth: 1,
+        borderColor: '#eee',
+    },
  
 
 })

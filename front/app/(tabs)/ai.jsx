@@ -247,7 +247,7 @@ const AiScreen = () => {
                         style={styles.buttonImage}
                     />
                     <Text style={styles.buttonText}>
-                        {isProcessing ? '처리 중...' : isListening ? '중단하기' : 'AI 시작하기'}
+                        {/* {isProcessing ? '처리 중...' : isListening ? '중단하기' : 'AI 시작하기'} */}
                     </Text>
                 </Pressable>
             </Animated.View>
