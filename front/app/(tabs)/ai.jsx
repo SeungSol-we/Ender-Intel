@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Pressable, Text, View, Image, Animated, StyleSheet, Platform } from 'react-native';
+import { Pressable, Text, View, Image, Animated, StyleSheet, Platform, ScrollView } from 'react-native';
 import Voice from '@react-native-voice/voice';
 import { useFonts } from 'expo-font';
 import * as Device from 'expo-device';
@@ -254,15 +254,25 @@ const AiScreen = () => {
 
             <View style={styles.resultContainer}>
                 <Text style={styles.resultLabel}>실시간 인식 결과</Text>
-                <Text style={styles.resultText}>
-                    {recognizedText || '버튼을 눌러 말하기!'}
-                </Text>
+                <ScrollView 
+                    showsVerticalScrollIndicator={true} // 스크롤바 표시 (원치 않으면 false)
+                    contentContainerStyle={{ flexGrow: 1 }}
+                >
+                    <Text style={styles.resultText}>
+                        {recognizedText || '버튼을 눌러 말하기!'}
+                    </Text>
+                </ScrollView>
             </View>
 
             {response && (
                 <View style={styles.responseContainer}>
                     <Text style={styles.responseLabel}>AI 응답</Text>
-                    <Text style={styles.responseText}>{response}</Text>
+                    <ScrollView 
+                        showsVerticalScrollIndicator={true}
+                        contentContainerStyle={{ flexGrow: 1 }}
+                    >
+                        <Text style={styles.responseText}>{response}</Text>
+                    </ScrollView>
                 </View>
             )}
         </View>
@@ -278,10 +288,11 @@ const styles = StyleSheet.create({
     resultContainer: {
         width: '85%',
         minHeight: 150,
+        maxHeight: 150,
         backgroundColor: 'rgba(255, 255, 255, 0.9)',
         borderRadius: 20,
         padding: 20,
-        marginBottom: 40,
+        marginBottom: 5,
         borderWidth: 1,
         borderColor: '#eee',
     },
@@ -300,6 +311,7 @@ const styles = StyleSheet.create({
     },
     responseContainer: {
         width: '85%',
+        height: 150,
         padding: 20,
         backgroundColor: 'white',
         borderRadius: 20,

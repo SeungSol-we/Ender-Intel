@@ -28,7 +28,6 @@ export default function TabLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          // ✨ focused 인자를 받아 스타일을 동적으로 적용합니다.
           tabBarIcon: ({ focused }) => (
             <Text style={[styles.emoji, focused ? styles.emojiFocused : styles.emojiUnfocused]}>
               🏠
@@ -87,6 +86,6 @@ const styles = StyleSheet.create({
   },
 
   emojiUnfocused: {
-    opacity: 0.4, 
+    opacity: 0.5, 
   },
 });
