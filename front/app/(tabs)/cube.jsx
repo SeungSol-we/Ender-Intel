@@ -15,7 +15,7 @@ export default function TabTwoScreen() {
       <View style={styles.container}>
         <Image 
             style={styles.background} 
-            source={require('../../assets/images/ender_back2.jpg')}
+            source={require('../../assets/images/ender_back3.jpg')}
         />
         <Text>
           로딩중...
@@ -27,7 +27,7 @@ export default function TabTwoScreen() {
 
   return (
     <View style={styles.container}>
-      <Image style={styles.background} source={require('../../assets/images/ender_back2.jpg')}/>
+      <Image style={styles.background} source={require('../../assets/images/ender_back4.jpg')}/>
       <View style={styles.resultContainer}> 
         <Text>컬러 피커 (라이브러리 사용예정)</Text>
       </View>
@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255, 255, 255, 0.9)',
         borderRadius: 20,
         padding: 20,
-        marginBottom: 40,
+        marginBottom: 10,
         borderWidth: 1,
         borderColor: '#eee',
     },
