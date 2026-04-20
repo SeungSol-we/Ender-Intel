@@ -1,18 +1,29 @@
 """
-ESP32 HTTP 클라이언트
-라즈베리 파이 -> ESP32 방향의 제어 신호 전송을 담당합니다.
+ESP32 BLE 클라이언트 (라즈베리 파이 전용)
+라파 → BLE → ESP32 방향의 제어 신호 전송을 담당합니다.
+
+필요 패키지: pip install bleak
 """
-import httpx
+import asyncio
+import json
 import os
+from bleak import BleakClient, BleakScanner
+from bleak.exc import BleakError
 from dotenv import load_dotenv
 
 load_dotenv()
 
-ESP32_IP = os.getenv("ESP32_IP_ADDRESS", "192.168.1.100")
-ESP32_BASE_URL = f"http://{ESP32_IP}"
-TIMEOUT = 5.0  # ESP32 응답 타임아웃 (초)
+# ──────────────────────────────────────────────
+# BLE 설정 (main.cpp 의 UUID와 반드시 일치)
+# ──────────────────────────────────────────────
+ESP32_DEVICE_NAME = os.getenv("ESP32_DEVICE_NAME", "Ender-Intel")
+CHAR_LED_UUID     = "12345678-1234-1234-1234-123456789001"
+CHAR_MOTOR_UUID   = "12345678-1234-1234-1234-123456789002"
 
-# 색상 이름 -> HEX 매핑
+MAX_RETRIES = 3
+RETRY_DELAY = 1.0
+SCAN_TIMEOUT = 5.0
+
 COLOR_MAP: dict[str, str] = {
     "RED":    "#FF0000",
     "GREEN":  "#00FF00",
@@ -24,66 +35,56 @@ COLOR_MAP: dict[str, str] = {
     "ORANGE": "#FF8C00",
 }
 
-# 큐브 동작 -> ESP32 command 매핑
-CUBE_COMMAND_MAP: dict[str, str] = {
-    "SPIN_LEFT":  "SPIN_LEFT",
-    "SPIN_RIGHT": "SPIN_RIGHT",
-    "STOP":       "STOP",
-}
+
+async def _find_esp32() -> str | None:
+    print(f"🔍 BLE 스캔 중... ('{ESP32_DEVICE_NAME}' 탐색)")
+    devices = await BleakScanner.discover(timeout=SCAN_TIMEOUT)
+    for device in devices:
+        if device.name and ESP32_DEVICE_NAME in device.name:
+            print(f"✅ ESP32 발견: {device.name} ({device.address})")
+            return device.address
+    print(f"❌ '{ESP32_DEVICE_NAME}' 를 찾지 못했습니다.")
+    return None
+
+
+async def _send_ble_command(char_uuid: str, payload: dict) -> dict:
+    data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            address = await _find_esp32()
+            if not address:
+                if attempt < MAX_RETRIES:
+                    print(f"   재시도 {attempt}/{MAX_RETRIES}...")
+                    await asyncio.sleep(RETRY_DELAY)
+                    continue
+                return {"success": False, "message": "ESP32를 찾을 수 없습니다."}
+
+            async with BleakClient(address, timeout=10.0) as client:
+                if not client.is_connected:
+                    raise BleakError("연결 실패")
+                await client.write_gatt_char(char_uuid, data, response=False)
+                print(f"✅ BLE 명령 전송 성공: {payload}")
+                return {"success": True, "message": f"명령 전송 성공: {payload}"}
+
+        except BleakError as e:
+            print(f"⚠️  BLE 오류 (시도 {attempt}/{MAX_RETRIES}): {e}")
+            if attempt < MAX_RETRIES:
+                await asyncio.sleep(RETRY_DELAY)
+
+        except Exception as e:
+            print(f"❌ 알 수 없는 오류: {e}")
+            return {"success": False, "message": str(e)}
+
+    return {"success": False, "message": f"{MAX_RETRIES}회 시도 후 실패"}
 
 
 async def send_led_command(state: str, color: str = "WHITE") -> dict:
-    """
-    LED 제어 명령을 ESP32로 전송합니다.
-
-    Args:
-        state: "ON" 또는 "OFF"
-        color: 색상 이름 (예: "RED", "BLUE"). state가 "ON"일 때만 유효.
-
-    Returns:
-        {"success": bool, "message": str}
-    """
     hex_color = COLOR_MAP.get(color.upper(), "#FFFFFF") if state == "ON" else "#000000"
     payload = {"state": state, "color": hex_color}
-
-    try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            response = await client.post(f"{ESP32_BASE_URL}/led", json=payload)
-            response.raise_for_status()
-            return {"success": True, "message": f"LED {state} 명령 전송 성공 (색상: {color})"}
-    except httpx.ConnectError:
-        return {"success": False, "message": f"ESP32({ESP32_IP}) 연결 실패 - IP를 확인하세요."}
-    except httpx.TimeoutException:
-        return {"success": False, "message": "ESP32 응답 타임아웃"}
-    except httpx.HTTPStatusError as e:
-        return {"success": False, "message": f"ESP32 오류 응답: {e.response.status_code}"}
-    except Exception as e:
-        return {"success": False, "message": f"알 수 없는 오류: {str(e)}"}
+    return await _send_ble_command(CHAR_LED_UUID, payload)
 
 
 async def send_motor_command(command: str) -> dict:
-    """
-    모터(큐브 회전) 제어 명령을 ESP32로 전송합니다.
-
-    Args:
-        command: "SPIN_LEFT", "SPIN_RIGHT", "STOP" 중 하나
-
-    Returns:
-        {"success": bool, "message": str}
-    """
-    esp32_command = CUBE_COMMAND_MAP.get(command.upper(), "STOP")
-    payload = {"command": esp32_command}
-
-    try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            response = await client.post(f"{ESP32_BASE_URL}/motor", json=payload)
-            response.raise_for_status()
-            return {"success": True, "message": f"모터 명령 '{esp32_command}' 전송 성공"}
-    except httpx.ConnectError:
-        return {"success": False, "message": f"ESP32({ESP32_IP}) 연결 실패 - IP를 확인하세요."}
-    except httpx.TimeoutException:
-        return {"success": False, "message": "ESP32 응답 타임아웃"}
-    except httpx.HTTPStatusError as e:
-        return {"success": False, "message": f"ESP32 오류 응답: {e.response.status_code}"}
-    except Exception as e:
-        return {"success": False, "message": f"알 수 없는 오류: {str(e)}"}
+    payload = {"command": command.upper()}
+    return await _send_ble_command(CHAR_MOTOR_UUID, payload)
