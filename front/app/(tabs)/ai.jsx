@@ -3,10 +3,10 @@ import { Pressable, Text, View, Image, Animated, StyleSheet, Platform, ScrollVie
 import Voice from '@react-native-voice/voice';
 import { useFonts } from 'expo-font';
 import * as Device from 'expo-device';
-// ✨ TTS 라이브러리 추가
+// TTS 라이브러리 추가
 import * as Speech from 'expo-speech';
 
-const BACKEND_URL = 'http://10.202.3.122:8000';
+const BACKEND_URL = 'http://172.30.7.218:8000';
 
 const AiScreen = () => {
     const [isListening, setIsListening] = useState(false);
@@ -19,7 +19,7 @@ const AiScreen = () => {
     const voiceInitialized = useRef(false);
     const latestText = useRef('');
 
-    // ✨ TTS 재생 함수
+    // TTS 재생 함수
     const speakResponse = (text) => {
         if (!text) return;
         
