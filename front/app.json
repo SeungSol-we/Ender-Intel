@@ -8,7 +8,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "front",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
@@ -25,7 +25,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "permissions": ["RECORD_AUDIO"],
+      "permissions": ["RECORD_AUDIO", "android.permission.RECORD_AUDIO"],
       "jsEngine": "hermes",
       "package": "com.jangseung.front"
     },
