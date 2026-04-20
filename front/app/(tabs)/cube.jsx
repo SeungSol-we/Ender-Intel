@@ -91,7 +91,7 @@ export default function TabTwoScreen() {
 
   return (
     <View style={styles.container}>
-      <Image style={styles.background} source={require('../../assets/images/ender_back4.jpg')} />
+      <Image style={styles.background} source={require('../../assets/images/ender_back7.png')} />
       
       <View style={styles.resultContainer}>
         <View style={styles.headerRow}>

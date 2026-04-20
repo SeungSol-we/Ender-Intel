@@ -10,6 +10,7 @@ import { Pressable, Text, View } from 'react-native';
 export default function HomeScreen() {
   return (
     <View style={styles.container}>
+        <Text style={{color:'#fff'}}>Hello!!!</Text>
         <Image style={{width: '100%', height:'100%', zIndex:-10, position:'absolute'}} source={require('../../assets/images/hell_back.jpg')}/>
         <View style={styles.resultContainer}>
           <Text>연결 관리</Text>
