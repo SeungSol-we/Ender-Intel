@@ -6,7 +6,7 @@ import * as Device from 'expo-device';
 // TTS 라이브러리 추가
 import * as Speech from 'expo-speech';
 
-const BACKEND_URL = 'http://172.30.7.218:8000';
+const BACKEND_URL = 'http://172.30.11.98:8000';
 
 const AiScreen = () => {
     const [isListening, setIsListening] = useState(false);
