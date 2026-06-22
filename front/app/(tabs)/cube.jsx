@@ -112,7 +112,7 @@ export default function TabTwoScreen() {
 
   return (
     <View style={styles.container}>
-      <Image style={styles.background} source={require('../../assets/images/ender_back7.png')} />
+      <Image style={styles.background} source={require('../../assets/images/ender_back4.jpg')} />
       
       {/* LED 제어 카드 */}
       <View style={styles.resultContainer}>

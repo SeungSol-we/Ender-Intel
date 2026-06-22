@@ -1,9 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Pressable, Text, View, Image, Animated, StyleSheet, Platform, ScrollView } from 'react-native';
+import { Pressable, Text, View, Image, Animated, StyleSheet, Platform, ScrollView, ActivityIndicator, Easing } from 'react-native';
 import Voice from '@react-native-voice/voice';
 import { useFonts } from 'expo-font';
 import * as Device from 'expo-device';
-// TTS 라이브러리 추가
 import * as Speech from 'expo-speech';
 
 const BACKEND_URL = 'http://172.30.11.98:8000';
@@ -19,17 +18,90 @@ const AiScreen = () => {
     const voiceInitialized = useRef(false);
     const latestText = useRef('');
 
-    // TTS 재생 함수
+    const floatAnim = useRef(new Animated.Value(0)).current;
+    const sideAnim = useRef(new Animated.Value(0)).current;
+    const scaleXAnim = useRef(new Animated.Value(-1)).current; // ✨ 처음부터 반전
+
+    useEffect(() => {
+        const floatingLoop = Animated.loop(
+            Animated.sequence([
+                Animated.timing(floatAnim, {
+                    toValue: 1,
+                    duration: 2000,
+                    easing: Easing.inOut(Easing.sin),
+                    useNativeDriver: true,
+                }),
+                Animated.timing(floatAnim, {
+                    toValue: 0,
+                    duration: 2000,
+                    easing: Easing.inOut(Easing.sin),
+                    useNativeDriver: true,
+                }),
+            ])
+        );
+
+        // ✨ 끝에서 방향 전환하는 왕복 애니메이션
+        const moveRight = () => {
+            Animated.timing(scaleXAnim, {
+                toValue: -1, // 오른쪽 이동 시 반전
+                duration: 0,
+                useNativeDriver: true,
+            }).start();
+
+            Animated.timing(sideAnim, {
+                toValue: 1,
+                duration: 10000,
+                easing: Easing.inOut(Easing.linear),
+                useNativeDriver: true,
+            }).start(({ finished }) => {
+                if (finished) moveLeft();
+            });
+        };
+
+        const moveLeft = () => {
+            Animated.timing(scaleXAnim, {
+                toValue: 1, // 왼쪽 이동 시 원본 방향
+                duration: 0,
+                useNativeDriver: true,
+            }).start();
+
+            Animated.timing(sideAnim, {
+                toValue: 0,
+                duration: 10000,
+                easing: Easing.inOut(Easing.linear),
+                useNativeDriver: true,
+            }).start(({ finished }) => {
+                if (finished) moveRight();
+            });
+        };
+
+        floatingLoop.start();
+        moveRight();
+
+        return () => {
+            floatingLoop.stop();
+            sideAnim.stopAnimation();
+            scaleXAnim.stopAnimation();
+        };
+    }, []);
+
+    const translateY = floatAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0, -20],
+    });
+
+    const translateX = sideAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [-100, 100],
+    });
+
     const speakResponse = (text) => {
         if (!text) return;
-        
-        // 재생 중인 음성이 있다면 중지 후 새로 시작
-        Speech.stop(); 
-        
+        Speech.stop();
         Speech.speak(text, {
-            language: 'ko-KR', // 한국어 설정
-            pitch: 1.0,        // 음높이
-            rate: 1.0,         // 속도
+            language: 'ko-KR',
+            pitch: 1.0,
+            rate: 1.0,
         });
     };
 
@@ -77,11 +149,8 @@ const AiScreen = () => {
         }
 
         return () => {
-            if (silenceTimer.current) {
-                clearTimeout(silenceTimer.current);
-            }
+            if (silenceTimer.current) clearTimeout(silenceTimer.current);
             Voice.destroy().then(Voice.removeAllListeners);
-            // ✨ 앱 종료 시 음성 재생도 중지
             Speech.stop();
         };
     }, []);
@@ -90,7 +159,6 @@ const AiScreen = () => {
         console.log('음성 인식 시작');
         setIsListening(true);
         startPulseAnimation();
-        // ✨ 사용자가 말을 시작하면 AI의 이전 음성 재생 중단
         Speech.stop();
     };
 
@@ -99,12 +167,12 @@ const AiScreen = () => {
             const text = e.value[0];
             console.log('인식된 텍스트:', text);
             setRecognizedText(text);
-            latestText.current = text; 
+            latestText.current = text;
             resetSilenceTimer();
         }
     };
 
-    const handleSpeechError = async (e) => { 
+    const handleSpeechError = async (e) => {
         if (!isListening) return;
         console.log('❌ 음성 인식 오류:', e);
         setIsListening(false);
@@ -134,7 +202,7 @@ const AiScreen = () => {
             if (textToSend && textToSend.trim().length > 0 && textToSend !== '듣고 있어요...') {
                 console.log('백엔드로 자동 전송 시작:', textToSend);
                 await sendTextToBackend(textToSend);
-                latestText.current = ''; 
+                latestText.current = '';
             } else {
                 console.log('전송할 유효한 텍스트가 없습니다.');
             }
@@ -181,11 +249,9 @@ const AiScreen = () => {
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
             const aiReply = data.text_reply || '응답을 받지 못했습니다.';
-            
-            setResponse(aiReply);
-            // ✨ 백엔드 응답이 오면 자동으로 읽어주기
-            speakResponse(aiReply);
 
+            setResponse(aiReply);
+            speakResponse(aiReply);
         } catch (error) {
             console.error('백엔드 통신 오류:', error);
             setResponse('오류: ' + error.message);
@@ -200,12 +266,11 @@ const AiScreen = () => {
         setTimeout(() => setIsButtonDisabled(false), 1000);
 
         if (isListening) {
-            await stopEverything(); 
+            await stopEverything();
         } else {
             try {
-                // ✨ 새로운 인식을 시작할 때 기존 TTS 소리 끄기
                 Speech.stop();
-                latestText.current = ''; 
+                latestText.current = '';
                 setRecognizedText('듣고 있어요...');
                 setResponse('');
                 await Voice.start('ko-KR');
@@ -222,12 +287,27 @@ const AiScreen = () => {
         'MyCustomFont-Bold': require('../../assets/fonts/MonaS12-Bold.ttf'),
     });
 
-    // 기존 UI 코드 (그대로 유지)
     return (
         <View style={styles.container}>
             <Image
                 style={styles.background}
                 source={require('../../assets/images/background.png')}
+            />
+
+            {/* ✨ scaleX 방향 전환 적용 */}
+            <Animated.Image
+                style={[
+                    styles.allay,
+                    {
+                        transform: [
+                            { translateY },
+                            { translateX },
+                            { scaleX: scaleXAnim }, // ✨ 끝에서 돌아서는 반전
+                        ]
+                    }
+                ]}
+                source={require('../../assets/images/allay.gif')}
+                resizeMode="contain"
             />
 
             <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
@@ -246,16 +326,14 @@ const AiScreen = () => {
                         source={require('../../assets/images/mic.png')}
                         style={styles.buttonImage}
                     />
-                    <Text style={styles.buttonText}>
-                        {/* {isProcessing ? '처리 중...' : isListening ? '중단하기' : 'AI 시작하기'} */}
-                    </Text>
+                    <Text style={styles.buttonText}></Text>
                 </Pressable>
             </Animated.View>
 
             <View style={styles.resultContainer}>
                 <Text style={styles.resultLabel}>실시간 인식 결과</Text>
-                <ScrollView 
-                    showsVerticalScrollIndicator={true} // 스크롤바 표시 (원치 않으면 false)
+                <ScrollView
+                    showsVerticalScrollIndicator={true}
                     contentContainerStyle={{ flexGrow: 1 }}
                 >
                     <Text style={styles.resultText}>
@@ -267,7 +345,7 @@ const AiScreen = () => {
             {response && (
                 <View style={styles.responseContainer}>
                     <Text style={styles.responseLabel}>AI 응답</Text>
-                    <ScrollView 
+                    <ScrollView
                         showsVerticalScrollIndicator={true}
                         contentContainerStyle={{ flexGrow: 1 }}
                     >
@@ -285,6 +363,14 @@ const styles = StyleSheet.create({
     container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     background: { width: '100%', height: '100%', zIndex: -10, position: 'absolute' },
     buttonText: { fontSize: 16, fontWeight: '600', color: '#333' },
+    allay: {
+        position: 'absolute',
+        top: '12%',
+        width: 80,
+        height: 80,
+        zIndex: -5,
+        opacity: 0.85,
+    },
     resultContainer: {
         width: '85%',
         minHeight: 150,
